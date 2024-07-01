@@ -23,18 +23,18 @@ def preprocess_input(audio_data, num_mfcc=13, n_fft=2048, hop_length=512, expect
     mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=num_mfcc, n_fft=n_fft, hop_length=hop_length)
     
     # Normalize MFCCs
-    mfccs_normalized = mfccs.T  # Transpose to have shape (time_steps, num_mfcc)
+    mfccs.T  # Transpose to have shape (time_steps, num_mfcc)
     
     # Adjust number of time steps to match expected shape
-    if mfccs_normalized.shape[0] < expected_time_steps:
+    if mfccs.shape[1] < expected_time_steps:
         # Pad MFCCs if fewer time steps
-        mfccs_normalized = np.pad(mfccs_normalized, ((0, expected_time_steps - mfccs_normalized.shape[0]), (0, 0)))
-    elif mfccs_normalized.shape[0] > expected_time_steps:
+        mfccs = np.pad(mfccs, ((0, 0), (0, expected_time_steps - mfccs.shape[1])))
+    elif mfccs.shape[1] > expected_time_steps:
         # Truncate MFCCs if more time steps
-        mfccs_normalized = mfccs_normalized[:expected_time_steps, :]
+        mfccs = mfccs[:, :expected_time_steps]
     
     # Add an additional dimension for compatibility with Conv2D input shape
-    mfccs_reshaped = mfccs_normalized[np.newaxis, ..., np.newaxis]  # Shape (1, expected_time_steps, num_mfcc, 1)
+    mfccs_reshaped = mfccs[np.newaxis, ..., np.newaxis]  # Shape (1, num_mfcc, expected_time_steps, 1)
     
     return mfccs_reshaped
 
@@ -208,3 +208,44 @@ html_string = """
         function scrollToSection() {
             document.getElementById('content').scrollIntoView({ behavior: 'smooth' });
         }
+    </script>
+</body>
+</html>
+"""
+
+# Load the model
+model = load_model("MODEL_CNN.h5")
+
+# Set up Streamlit layout
+st.title("Cough Sound Diagnosis")
+st.markdown("Record your cough sound below:")
+
+# Embed the HTML string
+html(html_string)
+
+# Audio input from the custom component
+audio_data = st.experimental_get_query_params().get("audio", None)
+
+if audio_data:
+    # Convert the audio data back to bytes
+    audio_data = bytes(audio_data)
+
+    # Preprocess the audio data
+    preprocessed_input = preprocess_input(audio_data)
+
+    # Make prediction
+    prediction = model.predict(preprocessed_input)
+    predicted_class = np.argmax(prediction)
+
+    # Map predicted class to condition
+    condition_mapping = {0: 'Normal', 1: 'COVID-19', 2: 'Pneumonia', 3: 'Bronchitis'}
+    condition = condition_mapping.get(predicted_class, 'Unknown')
+
+    # Display the prediction
+    st.write(f"Predicted Condition: {condition}")
+
+    # Create a download link for the recorded audio
+    download_link = get_download_link(audio_data, "recorded_cough.wav", "Download recorded cough sound")
+    st.markdown(download_link, unsafe_allow_html=True)
+else:
+    st.write("No audio data received.")
