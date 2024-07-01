@@ -8,10 +8,11 @@ import base64
 from streamlit.components.v1 import html
 
 # Function to load and return model
-@st.cache_data(allow_output_mutation=True)
+@st.cache(allow_output_mutation=True)
 def load_model(model_path):
     model = tf.keras.models.load_model(model_path)
     return model
+
 
 # Function to preprocess the input data
 def preprocess_input(audio_data, num_mfcc=13, n_fft=2048, hop_length=512, expected_time_steps=120):
