@@ -6,10 +6,11 @@ import soundfile as sf
 import io
 
 # Function to load and return model
-@st.cache_resource(allow_output_mutation=True)
+@st.cache_data
 def load_model(model_path):
     model = tf.keras.models.load_model(model_path)
     return model
+
 
 # Function to preprocess the input data
 def preprocess_input(audio_data, num_mfcc=13, n_fft=2048, hop_length=512, expected_time_steps=120):
